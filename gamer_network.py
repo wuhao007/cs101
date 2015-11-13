@@ -96,8 +96,24 @@ Freda likes to play Starfleet Commander, Ninja Hamsters, Seahorse Adventures."
 # Return:
 #   The newly created network data structure
 def create_data_structure(string_input):
+    network = {}
+    start = 0
+    dot_position = string_input.find('.')
+    while dot_position != -1:
+        connections = string_input[start:dot_position]
+        start = string_input.find('.', dot_position + 1)
+        likes = string_input[dot_position + 1:start]
+        put_in_network(network, connections, likes)
+        start += 1
+        dot_position = string_input.find('.', start)
     return network
-
+        
+def put_in_network(network, connections, likes):
+    user = connections[:connections.find(' ')]
+    connections = connections[connections.find(' to ') + 4:].split(', ')
+    likes = likes[likes.find(' play ') + 6:].split(', ') 
+    network[user] = (connections, likes)
+    return network
 # ----------------------------------------------------------------------------- # 
 # Note that the first argument to all procedures below is 'network' This is the #
 # data structure that you created with your create_data_structure procedure,    #
@@ -118,7 +134,7 @@ def create_data_structure(string_input):
 #   - If the user has no connections, return an empty list.
 #   - If the user is not in network, return None.
 def get_connections(network, user):
-    return []
+    return network[user][0] if user in network else None
 
 # ----------------------------------------------------------------------------- 
 # get_games_liked(network, user): 
@@ -133,7 +149,7 @@ def get_connections(network, user):
 #   - If the user likes no games, return an empty list.
 #   - If the user is not in network, return None.
 def get_games_liked(network,user):
-    return []
+    return network[user][1] if user in network else None
 
 # ----------------------------------------------------------------------------- 
 # add_connection(network, user_A, user_B): 
@@ -150,6 +166,11 @@ def get_games_liked(network,user):
 #   - If a connection already exists from user_A to user_B, return network unchanged.
 #   - If user_A or user_B is not in network, return False.
 def add_connection(network, user_A, user_B):
+    if user_A not in network or user_B not in network:
+        return False
+    connection_list = get_connections(network, user_A)
+    if user_B not in connection_list:
+        connection_list.append(user_B)
     return network
 
 # ----------------------------------------------------------------------------- 
@@ -170,6 +191,8 @@ def add_connection(network, user_A, user_B):
 #   - If the user already exists in network, return network *UNCHANGED* (do not change
 #     the user's game preferences)
 def add_new_user(network, user, games):
+    if user not in network:
+        network[user] = ([], games)
     return network
         
 # ----------------------------------------------------------------------------- 
@@ -191,7 +214,14 @@ def add_new_user(network, user, games):
 #   himself/herself. It is also OK if the list contains a user's primary 
 #   connection that is a secondary connection as well.
 def get_secondary_connections(network, user):
-    return []
+    if user in network:
+        secondary_connections = set()
+        for connection in get_connections(network, user):
+            for secondary in get_connections(network, connection):
+                secondary_connections.add(secondary)
+        return list(secondary_connections)
+    else:
+        return None
 
 # -----------------------------------------------------------------------------     
 # connections_in_common(network, user_A, user_B): 
@@ -206,7 +236,11 @@ def get_secondary_connections(network, user):
 #   The number of connections in common (as an integer).
 #   - If user_A or user_B is not in network, return False.
 def connections_in_common(network, user_A, user_B):
-    return 0
+    if user_A not in network or user_B not in network:
+        return False
+    connection_set_A = set(get_connections(network, user_A))
+    connection_set_B = set(get_connections(network, user_B))
+    return len(connection_set_A.intersection(connection_set_B))
 
 # ----------------------------------------------------------------------------- 
 # path_to_friend(network, user_A, user_B): 
@@ -242,6 +276,19 @@ def connections_in_common(network, user_A, user_B):
 #   will only include the arguments network, user_A, and user_B.
 def path_to_friend(network, user_A, user_B):
     # your RECURSIVE solution here!
+    return find_path(network, user_A, user_B, set())
+
+def find_path(network, user_A, user_B, checked):
+    if user_A not in network or user_B not in network:
+        return None
+    for connection in get_connections(network, user_A):
+        if connection == user_B:
+            return [user_A, user_B]
+        elif connection not in checked:
+            checked.add(connection)
+            path = find_path(network, connection, user_B, checked)
+            if path:
+                return [user_A] + path
     return None
 
 # Make-Your-Own-Procedure (MYOP)
